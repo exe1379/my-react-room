@@ -77,6 +77,9 @@ function App() {
       alert('表單送出失敗: ' + err.message);
     }
   };
+  const clearform = () => {
+    setForm({ roomId: '', roomName: '', roomSize: '' })
+  }
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial' }}>
@@ -117,6 +120,7 @@ function App() {
             />
           </div>
           <button type="submit">{isEditing ? '更新房間' : '新增房間'}</button>
+          {isEditing && <button type='button' onClick={clearform}>取消編輯</button>}
         </fieldset>
       </form>
 
