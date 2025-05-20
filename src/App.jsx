@@ -1,40 +1,99 @@
 import './App.css'
 import { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:8081/rest/room'
+const API_BASE = 'http://localhost:8081/rest/room';
 
 function App() {
-
   const [rooms, setRooms] = useState([]);
-  
-  
-  useEffect(() => {fetchRooms();},[])
+  const [form, setForm] = useState({ roomId: '', roomName: '', roomSize: '' });
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   const fetchRooms = async () => {
-    try{
-      const res = await fetch(API_BASE, {credentials: 'include'})
+    try {
+      const res = await fetch(API_BASE, { credentials: 'include' });
       const data = await res.json();
-      console.log('data:',data);
       setRooms(data.data);
-    }catch(err){
-      console.log('取得房間資料失敗', err.message);
-      alert('取得房間資料失敗' + err.message)
+    } catch (err) {
+      alert('取得房間資料失敗: ' + err.message);
     }
-  }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEdit = (room) => {
+    setForm(room);
+    setIsEditing(true);
+  };
+
+  const handleDelete = async (roomId) => {
+    if (!window.confirm(`確定要刪除房號 ${roomId} 嗎？`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/${roomId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('刪除失敗');
+      fetchRooms();
+    } catch (err) {
+      alert('刪除失敗: ' + err.message);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...form,
+        roomId: parseInt(form.roomId),
+        roomSize: parseInt(form.roomSize)
+      };
+
+      const res = await fetch(
+        isEditing ? `${API_BASE}/${payload.roomId}` : API_BASE,
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!res.ok) throw new Error('回應失敗');
+      alert(isEditing ? '更新成功' : '新增成功');
+      setForm({ roomId: '', roomName: '', roomSize: '' });
+      setIsEditing(false);
+      fetchRooms();
+    } catch (err) {
+      alert('表單送出失敗: ' + err.message);
+    }
+  };
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial' }}>
       <h1>房間管理系統</h1>
 
-      <form style={{ marginBottom: '30px' }}>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }}>
         <fieldset>
-          <legend>新增房間</legend>
+          <legend>{isEditing ? '編輯房間' : '新增房間'}</legend>
           <div>
             <label>房號：</label>
             <input
               type="number"
               name="roomId"
+              value={form.roomId}
+              onChange={handleChange}
               required
+              disabled={isEditing} // 編輯時房號不可改
             />
           </div>
           <div>
@@ -42,6 +101,9 @@ function App() {
             <input
               type="text"
               name="roomName"
+              value={form.roomName}
+              onChange={handleChange}
+              required
             />
           </div>
           <div>
@@ -49,12 +111,15 @@ function App() {
             <input
               type="number"
               name="roomSize"
+              value={form.roomSize}
+              onChange={handleChange}
               required
             />
           </div>
-          <button type="submit">新增房間</button>
+          <button type="submit">{isEditing ? '更新房間' : '新增房間'}</button>
         </fieldset>
       </form>
+
       <table border="1" cellPadding="10">
         <thead>
           <tr>
@@ -66,22 +131,23 @@ function App() {
           </tr>
         </thead>
         <tbody>
-            {rooms.map((room) => (
-              <tr key='room.roomId'>
-               <td>{room.roomId}</td> 
-               <td>{room.roomName}</td> 
-               <td>{room.roomSize}</td> 
-               <td>
-                <button type='submit'>編輯</button>
-               </td>
-               <td>
-                <button type='submit'>刪除</button>
-               </td>
-              </tr>
-            ))}
+          {rooms.map((room) => (
+            <tr key={room.roomId}>
+              <td>{room.roomId}</td>
+              <td>{room.roomName}</td>
+              <td>{room.roomSize}</td>
+              <td>
+                <button type="button" onClick={() => handleEdit(room)}>編輯</button>
+              </td>
+              <td>
+                <button type="button" onClick={() => handleDelete(room.roomId)}>刪除</button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
+
 export default App;
