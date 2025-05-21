@@ -1,16 +1,21 @@
 import './App.css'
 import { useState, useEffect } from 'react';
+import Login from './Login';
 
 const API_BASE = 'http://localhost:8081/rest/room';
 
 function App() {
+  const [userCert, setUserCert] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState({ roomId: '', roomName: '', roomSize: '' });
   const [isEditing, setIsEditing] = useState(false);
 
+  
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (userCert) {
+      fetchRooms();
+    }
+  }, [userCert]);
 
   const fetchRooms = async () => {
     try {
@@ -80,9 +85,26 @@ function App() {
   const clearform = () => {
     setForm({ roomId: '', roomName: '', roomSize: '' })
   }
+  
+  if (!userCert) {
+    return <Login onLoginSuccess={setUserCert} />;
+  }
+  const handleLogout = async () => {
+  await fetch("http://localhost:8081/rest/logout", {
+    method: "GET",
+    credentials: "include"
+  });
+  setUserCert(null); // 清除前端登入狀態
+};
+
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+      
+      <p>👋 歡迎，{userCert.username}({userCert.role})</p>
+      <button onClick={handleLogout}>登出</button>
+
+
       <h1>房間管理系統</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }}>
